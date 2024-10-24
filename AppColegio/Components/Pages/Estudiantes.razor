@@ -1,0 +1,177 @@
+@page "/estudiantes"
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@inject IHttpClientFactory ClientFactory
+
+<h1>Aqui estan el listado de estudiantes</h1>
+
+@if (getBranchesError || iestudiantes is null)
+{
+    <p>Unable to get branches from GitHub. Please try again later.</p>
+}
+else
+{
+    <form class="row g-3">
+  <div class="col-md-6">
+    <label for="inputEmail4" class="form-label">Carne</label>
+    <input @bind="carnet" type="text" class="form-control" id="inputEmail4" placeholder="Ejemplo: E001">
+  </div>
+  <div class="col-md-6">
+    <label for="inputPassword4" class="form-label">Nombres</label>
+    <input @bind="nombres" type="text" class="form-control" id="inputPassword4" placeholder="Ejemplo: Samuel Jose">
+  </div>
+ <div class="col-md-6">
+    <label for="inputEmail4" class="form-label">Apellidos</label>
+    <input @bind="apellidos" type="text" class="form-control" id="inputEmail4" placeholder="Ejemplo: Lopez Castro">
+  </div>
+  <div class="col-md-6">
+    <label for="inputPassword4" class="form-label">Direccion</label>
+    <input @bind="direccion" type="text" class="form-control" id="inputPassword4" placeholder="Ejemplo: Guatemala 5ta calle">
+  </div>
+  <div class="col-md-3">
+    <label for="inputCity" class="form-label">Telefono</label>
+    <input @bind="telefono" type="text" class="form-control" id="inputCity" placeholder="Ejemplo: 12345678">
+  </div>
+   <div class="col-md-5">
+    <label for="inputCity" class="form-label">Correo electronico</label>
+    <input @bind="correo" type="text" class="form-control" id="inputCity" placeholder="Ejemplo: rabiosa69@gmail.com">
+  </div>
+  <div class="col-md-2">
+    <label for="inputZip" class="form-label">Codigo de Sangre</label>
+    <input @bind="codsangre" type="text" class="form-control" id="inputZip" placeholder="Ejemplo: 1">
+  </div>
+   <div class="col-md-2">
+    <label for="lbl_fn" class="form-label">Fecha Nacimiento</label>
+    <input @bind="fc" type="date" class="form-control"  placeholder="YYYY-MM-dd">
+  </div>
+</form>
+<br>
+<button type="button" @onclick="crear" class="btn btn-info">Crear</button>
+<button type="button" class="btn btn-success">Modificar</button>
+<button type="button" class="btn btn-danger">Eliminar</button>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <td>Codigo</td>
+                <td>Carne</td>
+                <td>Nombres</td>
+                <td>Apellidos</td>
+                <td>Direccion</td>
+                <td>Telefono</td>
+                <td>Correo electronico</td>
+                <td>Codigo de Sangre</td>
+                <td>Fecha de Nacimiento</td>
+            </tr>
+        </tbody>
+        @foreach (var student in iestudiantes)
+        {
+            <tr>
+            <td>@student.Codigo</td>
+            <td>@student.Carne</td>
+            <td>@student.Nombres</td>
+            <td>@student.Apellidos</td>
+            <td>@student.Direccion</td>
+            <td>@student.Telefono</td>
+            <td>@student.Correo_electronico</td>
+            <td>@student.CodigoSangre</td>
+            <td>@student.Fecha_nacimiento</td>
+            </tr>
+        }
+    </table>
+}
+
+@code {
+    private string? url = "https://localhost:7191/api/Estudiantes";
+    private string? carnet,nombres,apellidos,direccion,telefono,correo;
+    private Int32 codsangre;
+    private DateTime? fc;
+
+
+//crear
+private async Task crear()
+{
+    var client = ClientFactory.CreateClient();
+    var addItem = new GitHubBranch 
+    {Carne=carnet,Nombres=nombres,Apellidos=apellidos,
+    Direccion=direccion,Telefono=telefono,Correo_electronico=correo,
+    CodigoSangre=codsangre,Fecha_nacimiento=fc};
+    await client.PostAsJsonAsync(url, addItem);
+}
+
+// Actualizar
+    private async Task Actualizar()
+    {
+        var client = ClientFactory.CreateClient(); 
+        var addItem = new GitHubBranch 
+    {Carne=carnet,Nombres=nombres,Apellidos=apellidos,
+    Direccion=direccion,Telefono=telefono,Correo_electronico=correo,
+        await client.PutAsJsonAsync($"{url}/{id_estudiante}", addItem);
+        await OnInitializedAsync();
+    }
+    // Eliminar
+     private async Task Eliminar()
+    {
+        var client = ClientFactory.CreateClient(); 
+        await client.DeleteAsync($"{url}/{id_estudiante}");
+        //url/var_idcliente
+        // https://localhost:7094/api/Clientes/1
+        await OnInitializedAsync();
+    private IEnumerable<GitHubBranch>? iestudiantes = [];
+    private bool getBranchesError;
+    private bool shouldRender;
+
+    protected override bool ShouldRender() => shouldRender;
+    }
+
+//CREAR
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get,
+            url);
+        request.Headers.Add("Accept", "application/vnd.github.v3+json");
+        request.Headers.Add("User-Agent", "HttpClientFactory-Sample");
+
+        var client = ClientFactory.CreateClient();
+
+        var response = await client.SendAsync(request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            using var responseStream = await response.Content.ReadAsStreamAsync();
+            iestudiantes = await JsonSerializer.DeserializeAsync
+                <IEnumerable<GitHubBranch>>(responseStream);
+        }
+        else
+        {
+            getBranchesError = true;
+        }
+
+        shouldRender = true;
+    }
+
+    public class GitHubBranch
+    {
+        [JsonPropertyName("id_estudiante")]
+        public Int32? Codigo { get; set; }
+        [JsonPropertyName("carne")]
+        public string? Carne { get; set; }
+        [JsonPropertyName("nombres")]
+        public string? Nombres { get; set; }
+        [JsonPropertyName("apellidos")]
+        public string? Apellidos { get; set; }
+        [JsonPropertyName("direccion")]
+        public string? Direccion { get; set; }
+        [JsonPropertyName("telefono")]
+        public string? Telefono { get; set; }
+        [JsonPropertyName("correo_electronico")]
+        public string? Correo_electronico { get; set; }
+        [JsonPropertyName("id_tipo_sangre")]
+        public Int32 CodigoSangre { get; set; }
+        [JsonPropertyName("fecha_nacimiento")]
+        public DateTime? Fecha_nacimiento { get; set; }
+    }
+}

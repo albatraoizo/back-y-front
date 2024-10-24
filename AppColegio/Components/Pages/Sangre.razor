@@ -1,0 +1,116 @@
+@page "/sangre"
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@inject IHttpClientFactory ClientFactory
+
+<h1>Aqui estan el listado de los tipos de sangre</h1>
+
+@if (getBranchesError || branches is null)
+{
+    <p>Unable to get branches from GitHub. Please try again later.</p>
+}
+else
+{
+ <form class="row g-3">
+  <div class="col-md-12">
+    <label for="inputPassword4" class="form-label">Tipo de Sangre</label>
+    <input @bind="descrip" type="text" class="form-control" id="inputPassword4" placeholder="Ejemplo: AO+">
+  </div>
+  
+</form>
+<br>
+<button type="button" @onclick="crear" class="btn btn-info">Crear</button>
+<button type="button" class="btn btn-success">Modificar</button>
+<button type="button" class="btn btn-danger">Eliminar</button>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <td>Codigo</td>
+                <td>Tipo de Sangre</td>
+            </tr>
+        </tbody>
+        @foreach (var branch in branches)
+        {
+            
+            <tr>
+            <td>@branch.Codigo</td>
+            <td>@branch.Name</td>
+            </tr>
+        }
+    </table>
+}
+
+@code {
+    private string? url= "https://localhost:7191/api/TiposSangres";
+    private string? descrip;
+
+    private async Task crear()
+{
+    var client = ClientFactory.CreateClient();
+    var addItem = new GitHubBranch {Name=descrip};
+    await client.PostAsJsonAsync(url, addItem);
+}
+
+private async Task Actualizar()
+    {
+        var client = ClientFactory.CreateClient(); 
+        var addItem = new GitHubBranch 
+    {Name=descrip,
+        await client.PutAsJsonAsync($"{url}/{id_tipo_sangre}", addItem);
+        await OnInitializedAsync();
+    }
+    // Eliminar
+     private async Task Eliminar()
+    {
+        var client = ClientFactory.CreateClient(); 
+        await client.DeleteAsync($"{url}/{id_tipo_sangre}");
+        //url/var_idcliente
+        // https://localhost:7094/api/Clientes/1
+        await OnInitializedAsync();
+    private IEnumerable<GitHubBranch>? iestudiantes = [];
+    private bool getBranchesError;
+    private bool shouldRender;
+
+    protected override bool ShouldRender() => shouldRender;
+    }
+
+    private IEnumerable<GitHubBranch>? branches = [];
+    private bool getBranchesError;
+    private bool shouldRender;
+
+    protected override bool ShouldRender() => shouldRender;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get,
+            url);
+        request.Headers.Add("Accept", "application/vnd.github.v3+json");
+        request.Headers.Add("User-Agent", "HttpClientFactory-Sample");
+
+        var client = ClientFactory.CreateClient();
+
+        var response = await client.SendAsync(request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            using var responseStream = await response.Content.ReadAsStreamAsync();
+            branches = await JsonSerializer.DeserializeAsync
+                <IEnumerable<GitHubBranch>>(responseStream);
+        }
+        else
+        {
+            getBranchesError = true;
+        }
+
+        shouldRender = true;
+    }
+
+    public class GitHubBranch
+    {
+        [JsonPropertyName("id_tipo_sangre")]
+        public Int32? Codigo { get; set; }
+        [JsonPropertyName("sangre")]
+        public string? Name { get; set; }
+    }
+}
